@@ -2,7 +2,7 @@ import { Heap } from "./heap.ts";
 
 export class PriorityQueue<T> {
   length = 0;
-  tree = new Heap();
+  heap = new Heap();
   values = new Map<number, T[]>();
   constructor(...queues: [number, T][]) {
     queues.forEach((value) => this.push(...value));
@@ -11,7 +11,7 @@ export class PriorityQueue<T> {
   push(p: number, value: T) {
     this.length++;
     if (!this.values.has(p)) {
-      this.tree.push(p);
+      this.heap.push(p);
       this.values.set(p, [value]);
       return this;
     }
@@ -20,7 +20,7 @@ export class PriorityQueue<T> {
   }
 
   pop() {
-    const key = this.tree.peek();
+    const key = this.heap.peek();
     if (!key) return;
     const values = this.values.get(key);
     if (!values) {
@@ -29,16 +29,33 @@ export class PriorityQueue<T> {
     this.length--;
     const value = values.pop();
     if (!values.length) {
-      this.tree.pop();
+      this.heap.pop();
     }
     return value;
   }
 
-  *[Symbol.iterator]() {
-    for (const key of this.tree) {
-      for (const value of this.values.get(key) ?? []) {
-        yield value;
+  peek() {
+    const key = this.heap.peek();
+    if (!key) return;
+    const values = this.values.get(key);
+    if (!values) {
+      return;
+    }
+    const value = values[values.length - 1];
+    return value;
+  }
+
+  *entries() {
+    for (const key of this.heap) {
+      for (const value of this.values.get(key)!) {
+        yield [key, value];
       }
+    }
+  }
+
+  *[Symbol.iterator]() {
+    for (const [, value] of this.entries()) {
+      yield value;
     }
   }
 }

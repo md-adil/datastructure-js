@@ -1,5 +1,5 @@
 export class TrieNode {
-  children: Record<string, TrieNode> = {};
+  readonly children: Record<string, TrieNode> = {};
   isEnd: boolean = false;
 }
 
@@ -13,9 +13,7 @@ export class Trie {
   insert(word: string) {
     let curr = this.root;
     for (const w of word) {
-      if (!(w in curr.children)) {
-        curr.children[w] = new TrieNode();
-      }
+      curr.children[w] ??= new TrieNode();
       curr = curr.children[w];
     }
     curr.isEnd = true;
