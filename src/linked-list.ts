@@ -1,10 +1,11 @@
 import { Node } from "./node.ts";
+import { range } from "./range.ts";
 
-export interface LinkedList<T> {
-  [key: number]: T;
-}
-
-export type IterCallback<T, R> = (val: T, index: number, instance: LinkedList<T>) => R;
+export type IterCallback<T, R> = (
+  val: T,
+  index: number,
+  instance: LinkedList<T>
+) => R;
 
 export class LinkedList<T> {
   static fromArray<T>(values: T[]) {
@@ -16,17 +17,20 @@ export class LinkedList<T> {
   #length = 0;
 
   constructor(...values: T[]) {
-    values.forEach(this.push.bind(this));
+    this.push(...values);
   }
 
-  push(value: T) {
-    const tail = this.#tail;
-    this.#tail = new Node(value, undefined, tail);
-    this.#head ??= this.#tail;
-    if (tail) {
-      tail.left = this.#tail;
+  push(...values: T[]) {
+    for (const value of values) {
+      const tail = this.#tail;
+      this.#tail = new Node(value, tail);
+      this.#head ??= this.#tail;
+      if (tail) {
+        tail.right = this.#tail;
+      }
+      this.#length++;
     }
-    this.#length++;
+    return this.#length;
   }
 
   pop(): T | undefined {
@@ -34,12 +38,28 @@ export class LinkedList<T> {
     if (!tail) {
       return undefined;
     }
-    this.#tail = tail.right;
+    this.#tail = tail.left;
     if (this.#tail) {
-      this.#tail.left = undefined;
+      this.#tail.right = undefined;
     }
     this.#length--;
     return tail.value;
+  }
+
+  get head() {
+    return this.#head;
+  }
+
+  get tail() {
+    return this.#tail;
+  }
+
+  get first() {
+    return this.head?.value;
+  }
+
+  get last() {
+    return this.tail?.value;
   }
 
   shift() {
@@ -47,22 +67,62 @@ export class LinkedList<T> {
     if (!head) {
       return undefined;
     }
-    this.#head = head.left;
+    this.#head = head.right;
     if (this.#head) {
-      this.#head.right = undefined;
+      this.#head.left = undefined;
     }
     this.#length--;
-    return head;
+    return head.value;
   }
 
-  unshift(value: T) {
-    const head = this.#head;
-    this.#head = new Node(value, head);
-    if (head) {
-      head.right = this.#head;
+  unshift(values: T[]) {
+    for (const value of values) {
+      const head = this.#head;
+      this.#head = new Node(value, undefined, head);
+      if (head) {
+        head.left = this.#head;
+      }
+      this.#tail ??= this.#head;
+      this.#length++;
     }
-    this.#tail ??= this.#head;
-    this.#length++;
+    return this.#length;
+  }
+
+  deleteNode(node: Node<T>) {
+    this.#length--;
+    if (node === this.#head && node == this.#tail) {
+      // only node available
+      this.#head = this.#tail = undefined;
+      return this;
+    }
+    if (node === this.#head) {
+      this.#head = node.right;
+      node.right = undefined;
+      this.#head!.left = undefined;
+      return this;
+    }
+
+    if (node === this.#tail) {
+      this.#tail = node.left;
+      node.left = undefined;
+      this.#tail!.right = undefined;
+      return this;
+    }
+    node.left!.right = node.right;
+    node.right!.left = node.left;
+    node.left = undefined;
+    node.right = undefined;
+    return this;
+  }
+
+  delete(node: Node<T> | T | undefined): this {
+    if (!node) {
+      return this;
+    }
+    if (node instanceof Node) {
+      return this.deleteNode(node);
+    }
+    return this.delete(this.findNode((x) => x === node));
   }
 
   reverse() {
@@ -71,7 +131,7 @@ export class LinkedList<T> {
     while (current) {
       [current.right, current.left] = [current.left, current.right];
       prev = current;
-      current = current.right;
+      current = current.left;
     }
     this.#tail = this.#head;
     this.#head = prev;
@@ -79,7 +139,7 @@ export class LinkedList<T> {
   }
 
   toString() {
-    return [...this].join(" ⇄ ");
+    return this.map((x) => JSON.stringify(x)).join(" ⇄ ");
   }
 
   at(index: number) {
@@ -87,11 +147,17 @@ export class LinkedList<T> {
   }
 
   findNode(callback: IterCallback<T, boolean>) {
-    for (const [index, value] of this.entries()) {
-      if (callback(value, index, this)) {
-        return value;
+    let i = 0;
+    for (const node of this.nodes()) {
+      if (callback(node.value, i, this)) {
+        return node;
       }
+      i++;
     }
+  }
+
+  join(separator: string) {
+    return [...this].join(separator);
   }
 
   find(callback: IterCallback<T, boolean>) {
@@ -122,7 +188,7 @@ export class LinkedList<T> {
     if (index < 0) {
       let tail = this.#tail;
       while (tail && index < -1) {
-        tail = tail.right;
+        tail = tail.left;
         index++;
       }
       return tail;
@@ -130,10 +196,9 @@ export class LinkedList<T> {
 
     let current = this.#head;
     while (current && index > 0) {
-      current = current.left;
+      current = current.right;
       index--;
     }
-
     return current;
   }
 
@@ -149,10 +214,37 @@ export class LinkedList<T> {
     return list;
   }
 
+  *splice(start: number, end = this.length - start) {
+    const list = new LinkedList();
+    if (start >= this.#length) {
+      yield* list;
+    }
+    let node = this.nodeAt(start)!;
+    for (const _ of range(end)) {
+      list.push(node.value);
+      const nxt = node.right!;
+      this.deleteNode(node);
+      node = nxt;
+    }
+    yield* list;
+  }
+
+  slice(start: number, end = this.length - start) {
+    const list = new LinkedList();
+    let node = this.nodeAt(start);
+    for (const _ of range(start, end)) {
+      if (!node) break;
+      const r = node.right!;
+      list.push(node);
+      node = r;
+    }
+    return list;
+  }
+
   *entries(): Generator<[index: number, value: T]> {
     let index = 0;
-    for (const value of this) {
-      yield [index, value];
+    for (const node of this.nodes()) {
+      yield [index, node.value];
       index++;
     }
   }
@@ -178,7 +270,10 @@ export class LinkedList<T> {
     return false;
   }
 
-  reduce<U>(callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U, initial: U): U {
+  reduce<U>(
+    callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U,
+    initial: U
+  ): U {
     let acc = initial;
     let i = 0;
     for (const val of this) {
@@ -197,93 +292,103 @@ export class LinkedList<T> {
     return this.#length;
   }
 
-  sort(compareFn?: (a: T, b: T) => number): this {
-    if (this.#length < 2) return this;
+  sort(
+    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+  ): this {
+    function mergeSort(head: Node<T> | undefined): Node<T> | undefined {
+      if (!head || !head.right) return head;
 
-    const mergeSort = (head: Node<T> | undefined): Node<T> | undefined => {
-      if (!head || !head.left) return head;
-
-      // Split list
-      let slow = head;
-      let fast = head.left;
-
-      while (fast && fast.left) {
-        slow = slow.left!;
-        fast = fast.left.left!;
-      }
-
-      const mid = slow.left!;
-      slow.left = undefined;
+      const mid = getMiddle(head);
+      const rightHead = mid.right;
       mid.right = undefined;
+      if (rightHead) rightHead.left = undefined;
 
-      const left = mergeSort(head);
-      const right = mergeSort(mid);
+      const leftSorted = mergeSort(head);
+      const rightSorted = mergeSort(rightHead);
 
-      return merge(left, right);
-    };
+      return merge(leftSorted, rightSorted);
+    }
 
-    const merge = (left: Node<T> | undefined, right: Node<T> | undefined): Node<T> => {
-      const dummy = new Node<T>(0 as T);
+    function getMiddle(head: Node<T>): Node<T> {
+      let slow = head,
+        fast = head;
+      while (fast.right && fast.right.right) {
+        slow = slow.right!;
+        fast = fast.right.right;
+      }
+      return slow;
+    }
+
+    const merge = (
+      l1: Node<T> | undefined,
+      l2: Node<T> | undefined
+    ): Node<T> | undefined => {
+      const dummy = new Node<T>(null as any);
       let current = dummy;
 
-      while (left && right) {
-        const cmp = compareFn?.(left.value, right.value) ?? (left.value < right.value ? -1 : 1);
-        if (cmp <= 0) {
-          current.left = left;
-          left.right = current;
-          left = left.left;
+      while (l1 && l2) {
+        if (compareFn(l1.value, l2.value) <= 0) {
+          current.right = l1;
+          l1.left = current;
+          l1 = l1.right;
         } else {
-          current.left = right;
-          right.right = current;
-          right = right.left;
+          current.right = l2;
+          l2.left = current;
+          l2 = l2.right;
         }
-        current = current.left;
+        current = current.right;
       }
 
-      current.left = left || right;
-      if (current.left) {
-        current.left.right = current;
+      if (l1) {
+        current.right = l1;
+        l1.left = current;
       }
 
-      const newHead = dummy.left!;
-      newHead.right = undefined;
+      if (l2) {
+        current.right = l2;
+        l2.left = current;
+      }
 
-      // Update tail
-      let tail = newHead;
-      while (tail.left) tail = tail.left;
-      this.#tail = tail;
+      // Fix head/tail
+      const newHead = dummy.right;
+      if (newHead) newHead.left = undefined;
+
+      this.#head = newHead;
+      let newTail = newHead;
+      while (newTail && newTail.right) newTail = newTail.right;
+      this.#tail = newTail;
 
       return newHead;
     };
 
     this.#head = mergeSort(this.#head);
+
     return this;
   }
 
   toJSON() {
-    let json = "[";
-    const isLast = this.#length - 1;
-    let i = 0;
-    for (const item of this) {
-      json += JSON.stringify(item) + (isLast === i ? "]" : ",");
-      i++;
-    }
-    return json;
+    return "[" + this.map((x) => JSON.stringify(x)).join(",") + "]";
   }
 
-  *[Symbol.iterator]() {
-    let current = this.#head;
+  *reversedNodes() {
+    let current = this.#tail;
     while (current) {
-      yield current.value;
+      yield current;
       current = current.left;
     }
   }
 
-  *items() {
-    let i = 0;
-    for (const item of this) {
-      yield [i, item] as const;
-      i++;
+  *nodes() {
+    let current = this.#head;
+    while (current) {
+      yield current;
+      current = current.right;
+    }
+  }
+
+  *[Symbol.iterator]() {
+    for (const node of this.nodes()) {
+      yield node.value;
     }
   }
 }
