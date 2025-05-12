@@ -1,11 +1,7 @@
 import { Node } from "./node.ts";
 import { range } from "./range.ts";
 
-export type IterCallback<T, R> = (
-  val: T,
-  index: number,
-  instance: LinkedList<T>
-) => R;
+export type IterCallback<T, R> = (val: T, index: number, instance: LinkedList<T>) => R;
 
 export class LinkedList<T> {
   static fromArray<T>(values: T[]) {
@@ -18,6 +14,37 @@ export class LinkedList<T> {
 
   constructor(...values: T[]) {
     this.push(...values);
+  }
+
+  get length() {
+    return this.#length;
+  }
+
+  set length(length: number) {
+    if (length > this.#length) {
+      throw new Error("Can't set exceeding length");
+    }
+
+    if (length === this.#length) return;
+
+    if (length === 0) {
+      this.#head = this.#tail = undefined;
+      this.#length = length;
+      return;
+    }
+
+    const node = this.nodeAt(length)!;
+    node.right = undefined;
+    if (node.left) node.left.right = undefined;
+    this.#tail = node;
+    this.#length = length;
+  }
+
+  replace(index: number, value: T) {
+    const node = this.nodeAt(index);
+    if (!node) return this;
+    node.value = value;
+    return this;
   }
 
   push(...values: T[]) {
@@ -75,7 +102,7 @@ export class LinkedList<T> {
     return head.value;
   }
 
-  unshift(values: T[]) {
+  unshift(...values: T[]) {
     for (const value of values) {
       const head = this.#head;
       this.#head = new Node(value, undefined, head);
@@ -168,6 +195,7 @@ export class LinkedList<T> {
         return index;
       }
     }
+    return -1;
   }
 
   findNode(callback: IterCallback<T, boolean>) {
@@ -198,6 +226,7 @@ export class LinkedList<T> {
         return index;
       }
     }
+    return -1;
   }
 
   nodeAt(index: number): Node<T> | undefined {
@@ -246,8 +275,9 @@ export class LinkedList<T> {
     let node = this.nodeAt(start)!;
     for (const _ of range(end)) {
       list.push(node.value);
-      const nxt = node.right!;
+      const nxt = node.right;
       this.deleteNode(node);
+      if (!nxt) break;
       node = nxt;
     }
     return list;
@@ -258,7 +288,7 @@ export class LinkedList<T> {
     let node = this.nodeAt(start);
     for (const _ of range(start, end)) {
       if (!node) break;
-      const r = node.right!;
+      const r = node.right;
       list.push(node.value);
       node = r;
     }
@@ -294,10 +324,7 @@ export class LinkedList<T> {
     return false;
   }
 
-  reduce<U>(
-    callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U,
-    initial: U
-  ): U {
+  reduce<U>(callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U, initial: U): U {
     let acc = initial;
     let i = 0;
     for (const val of this) {
@@ -307,18 +334,7 @@ export class LinkedList<T> {
     return acc;
   }
 
-  clear() {
-    this.#head = this.#tail = undefined;
-    this.#length = 0;
-  }
-
-  get length() {
-    return this.#length;
-  }
-
-  sort(
-    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
-  ): this {
+  sort(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)): this {
     function mergeSort(head: Node<T> | undefined): Node<T> | undefined {
       if (!head || !head.right) return head;
 
@@ -343,10 +359,7 @@ export class LinkedList<T> {
       return slow;
     }
 
-    const merge = (
-      l1: Node<T> | undefined,
-      l2: Node<T> | undefined
-    ): Node<T> | undefined => {
+    const merge = (l1: Node<T> | undefined, l2: Node<T> | undefined): Node<T> | undefined => {
       const dummy = new Node<T>(null as any);
       let current = dummy;
 
@@ -390,10 +403,6 @@ export class LinkedList<T> {
     return this;
   }
 
-  toJSON() {
-    return "[" + this.map((x) => JSON.stringify(x)).join(",") + "]";
-  }
-
   some(callback: IterCallback<T, boolean>) {
     for (const [index, value] of this.entries()) {
       if (callback(value, index, this)) {
@@ -426,6 +435,10 @@ export class LinkedList<T> {
       yield current;
       current = current.right;
     }
+  }
+
+  toJSON() {
+    return "[" + this.map((x) => JSON.stringify(x)).join(",") + "]";
   }
 
   *[Symbol.iterator]() {
