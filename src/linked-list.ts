@@ -146,6 +146,30 @@ export class LinkedList<T> {
     return this.nodeAt(index)?.value;
   }
 
+  nodeOf(value: T) {
+    for (const node of this.nodes()) {
+      if (node.value === value) {
+        return node;
+      }
+    }
+  }
+
+  concat(...lists: LinkedList<T>[]) {
+    const final = new LinkedList(...this);
+    for (const list of lists) {
+      list.forEach((x) => final.push(x));
+    }
+    return final;
+  }
+
+  indexOf(value: T) {
+    for (const [index, item] of this.entries()) {
+      if (item === value) {
+        return index;
+      }
+    }
+  }
+
   findNode(callback: IterCallback<T, boolean>) {
     let i = 0;
     for (const node of this.nodes()) {
@@ -214,10 +238,10 @@ export class LinkedList<T> {
     return list;
   }
 
-  *splice(start: number, end = this.length - start) {
-    const list = new LinkedList();
+  splice(start: number, end = this.length - start) {
+    const list = new LinkedList<T>();
     if (start >= this.#length) {
-      yield* list;
+      return list;
     }
     let node = this.nodeAt(start)!;
     for (const _ of range(end)) {
@@ -226,16 +250,16 @@ export class LinkedList<T> {
       this.deleteNode(node);
       node = nxt;
     }
-    yield* list;
+    return list;
   }
 
   slice(start: number, end = this.length - start) {
-    const list = new LinkedList();
+    const list = new LinkedList<T>();
     let node = this.nodeAt(start);
     for (const _ of range(start, end)) {
       if (!node) break;
       const r = node.right!;
-      list.push(node);
+      list.push(node.value);
       node = r;
     }
     return list;
@@ -368,6 +392,24 @@ export class LinkedList<T> {
 
   toJSON() {
     return "[" + this.map((x) => JSON.stringify(x)).join(",") + "]";
+  }
+
+  some(callback: IterCallback<T, boolean>) {
+    for (const [index, value] of this.entries()) {
+      if (callback(value, index, this)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  every(callback: IterCallback<T, boolean>) {
+    for (const [index, value] of this.entries()) {
+      if (!callback(value, index, this)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   *reversedNodes() {
