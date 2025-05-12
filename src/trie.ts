@@ -4,22 +4,32 @@ export class TrieNode {
 }
 
 export class Trie {
+  #length = 0;
   root = new TrieNode();
 
   constructor(...args: string[]) {
-    args.forEach((x) => this.insert(x));
+    this.insert(...args);
   }
 
-  insert(word: string) {
-    let curr = this.root;
-    for (const w of word) {
-      curr.children[w] ??= new TrieNode();
-      curr = curr.children[w];
+  get length() {
+    return this.#length;
+  }
+
+  insert(...words: string[]) {
+    for (const word of words) {
+      let curr = this.root;
+      for (const w of word) {
+        if (!(w in curr.children)) {
+          curr.children[w] = new TrieNode();
+        }
+        curr = curr.children[w];
+      }
+      curr.isEnd = true;
+      this.#length++;
     }
-    curr.isEnd = true;
   }
 
-  delete(word: string): boolean {
+  delete(...words: string[]): number {
     function _delete(node: TrieNode, word: string, depth: number): boolean {
       if (depth === word.length) {
         if (!node.isEnd) return false;
@@ -38,7 +48,13 @@ export class Trie {
       return false;
     }
 
-    return _delete(this.root, word, 0);
+    for (const word of words) {
+      if (_delete(this.root, word, 0)) {
+        this.#length--;
+      }
+    }
+
+    return this.#length;
   }
 
   #findNode(word: string) {
