@@ -1,11 +1,43 @@
 import { Node } from "./node.ts";
 import { range } from "./range.ts";
 
-export type IterCallback<T, R> = (val: T, index: number, instance: LinkedList<T>) => R;
+export type IterCallback<T, R> = (
+  val: T,
+  index: number,
+  instance: LinkedList<T>
+) => R;
 
 export class LinkedList<T> {
-  static fromArray<T>(values: T[]) {
-    return new LinkedList<T>(...values);
+  static from<T>(iterable: Iterable<T> | ArrayLike<T>): LinkedList<T> {
+    if ("length" in iterable) {
+      const list = new LinkedList<T>();
+      for (let i = 0; i < iterable.length; i++) {
+        list.push(iterable[i]);
+      }
+      return list;
+    }
+    return new LinkedList<T>(...iterable);
+  }
+
+  async fromAsync<T>(
+    iterableOrArrayLike:
+      | AsyncIterable<T>
+      | Iterable<T | PromiseLike<T>>
+      | ArrayLike<T | PromiseLike<T>>
+  ) {
+    const list = new LinkedList<T>();
+    for (const data of await Array.fromAsync(iterableOrArrayLike)) {
+      list.push(data);
+    }
+    return list;
+  }
+
+  isLinkedList<T>(data: unknown): data is LinkedList<T> {
+    return data instanceof LinkedList;
+  }
+
+  of<T>(...items: T[]): LinkedList<T> {
+    return new LinkedList(...items);
   }
 
   #head?: Node<T>;
@@ -14,6 +46,10 @@ export class LinkedList<T> {
 
   constructor(...values: T[]) {
     this.push(...values);
+  }
+
+  valueOf() {
+    return this.#length;
   }
 
   get length() {
@@ -324,7 +360,10 @@ export class LinkedList<T> {
     return false;
   }
 
-  reduce<U>(callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U, initial: U): U {
+  reduce<U>(
+    callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U,
+    initial: U
+  ): U {
     let acc = initial;
     let i = 0;
     for (const val of this) {
@@ -334,7 +373,9 @@ export class LinkedList<T> {
     return acc;
   }
 
-  sort(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)): this {
+  sort(
+    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+  ): this {
     function mergeSort(head: Node<T> | undefined): Node<T> | undefined {
       if (!head || !head.right) return head;
 
@@ -359,7 +400,10 @@ export class LinkedList<T> {
       return slow;
     }
 
-    const merge = (l1: Node<T> | undefined, l2: Node<T> | undefined): Node<T> | undefined => {
+    const merge = (
+      l1: Node<T> | undefined,
+      l2: Node<T> | undefined
+    ): Node<T> | undefined => {
       const dummy = new Node<T>(null as any);
       let current = dummy;
 
@@ -421,16 +465,40 @@ export class LinkedList<T> {
     return true;
   }
 
-  *reversedNodes() {
-    let current = this.#tail;
+  *reversedNodes(tail = this.#tail): Generator<Node<T>> {
+    let current = tail;
     while (current) {
       yield current;
       current = current.left;
     }
   }
 
-  *nodes() {
-    let current = this.#head;
+  fill(value: T, start = 0, end = this.#length) {
+    let len = end - start;
+    for (const node of this.nodes(this.nodeAt(start))) {
+      if (len < 1) break;
+      node.value = value;
+      len--;
+    }
+    return this;
+  }
+
+  toSorted(
+    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+  ) {
+    return new LinkedList(...this).sort(compareFn);
+  }
+
+  toSpliced(start: number, end?: number) {
+    return new LinkedList(...this).splice(start, end);
+  }
+
+  toReversed() {
+    return new LinkedList(...this).reverse();
+  }
+
+  *nodes(head = this.#head): Generator<Node<T>> {
+    let current = head;
     while (current) {
       yield current;
       current = current.right;
