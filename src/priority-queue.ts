@@ -45,7 +45,7 @@ export class PriorityQueue<T> {
     return value;
   }
 
-  *entries() {
+  *entries(): Generator<[priority: number, value: T]> {
     for (const key of this.heap) {
       for (const value of this.values.get(key)!) {
         yield [key, value];

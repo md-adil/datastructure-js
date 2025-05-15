@@ -106,7 +106,7 @@ export class BinarySearchTree<T = number> {
     return findDepth(this.#root);
   }
 
-  toString() {
+  print() {
     function printBST(node: Node<T> | undefined, prefix = "", isLeft = true) {
       if (!node) return;
 

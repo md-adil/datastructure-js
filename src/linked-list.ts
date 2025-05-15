@@ -1,33 +1,42 @@
+import { isIterable, toIterable, mapIterable, MapFn, isAsyncIterable, toAsyncIterable } from "./iterable.ts";
 import { Node } from "./node.ts";
 import { range } from "./range.ts";
 
-export type IterCallback<T, R> = (
-  val: T,
-  index: number,
-  instance: LinkedList<T>
-) => R;
+export type IterCallback<T, R> = (val: T, index: number, instance: LinkedList<T>) => R;
 
-export class LinkedList<T> {
-  static from<T>(iterable: Iterable<T> | ArrayLike<T>): LinkedList<T> {
-    if ("length" in iterable) {
-      const list = new LinkedList<T>();
-      for (let i = 0; i < iterable.length; i++) {
-        list.push(iterable[i]);
+export class LinkedList<T> implements Iterable<T> {
+  static isCyclic<T>(node: Node<T> | undefined) {
+    let slow = node;
+    let fast = node?.right;
+    while (fast) {
+      if (slow === fast) {
+        return true;
       }
-      return list;
+      slow = slow!.right;
+      fast = fast.right?.right;
     }
-    return new LinkedList<T>(...iterable);
+    return false;
   }
 
-  async fromAsync<T>(
-    iterableOrArrayLike:
-      | AsyncIterable<T>
-      | Iterable<T | PromiseLike<T>>
-      | ArrayLike<T | PromiseLike<T>>
-  ) {
+  static from<T>(iterable: Iterable<T> | ArrayLike<T>): LinkedList<T>;
+  static from<T, U>(iterable: Iterable<T> | ArrayLike<T>, mapFn: MapFn<T, U>): LinkedList<U>;
+  static from<T>(iterable: Iterable<T> | ArrayLike<T>, mapFn?: MapFn<T, T>) {
+    if (!isIterable(iterable)) {
+      iterable = toIterable(iterable);
+    }
+    if (mapFn) {
+      iterable = mapIterable(iterable, mapFn);
+    }
+    return new LinkedList(...iterable);
+  }
+
+  static async fromAsync<T>(iterableOrArrayLike: AsyncIterable<T> | Iterable<T | PromiseLike<T>> | ArrayLike<T | PromiseLike<T>>) {
     const list = new LinkedList<T>();
-    for (const data of await Array.fromAsync(iterableOrArrayLike)) {
-      list.push(data);
+    if (!isAsyncIterable(iterableOrArrayLike)) {
+      iterableOrArrayLike = toAsyncIterable(iterableOrArrayLike);
+    }
+    for await (const value of iterableOrArrayLike) {
+      list.push(value);
     }
     return list;
   }
@@ -360,10 +369,7 @@ export class LinkedList<T> {
     return false;
   }
 
-  reduce<U>(
-    callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U,
-    initial: U
-  ): U {
+  reduce<U>(callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U, initial: U): U {
     let acc = initial;
     let i = 0;
     for (const val of this) {
@@ -373,9 +379,7 @@ export class LinkedList<T> {
     return acc;
   }
 
-  sort(
-    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
-  ): this {
+  sort(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)): this {
     function mergeSort(head: Node<T> | undefined): Node<T> | undefined {
       if (!head || !head.right) return head;
 
@@ -400,10 +404,7 @@ export class LinkedList<T> {
       return slow;
     }
 
-    const merge = (
-      l1: Node<T> | undefined,
-      l2: Node<T> | undefined
-    ): Node<T> | undefined => {
+    const merge = (l1: Node<T> | undefined, l2: Node<T> | undefined): Node<T> | undefined => {
       const dummy = new Node<T>(null as any);
       let current = dummy;
 
@@ -483,9 +484,7 @@ export class LinkedList<T> {
     return this;
   }
 
-  toSorted(
-    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
-  ) {
+  toSorted(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)) {
     return new LinkedList(...this).sort(compareFn);
   }
 

@@ -10,9 +10,7 @@ export class Queue<T> {
   }
 
   #resize() {
-    console.log("resizing");
     this.#data = this.#data.slice(this.index);
-    console.log(this.#data);
     this.index = 0;
   }
 
