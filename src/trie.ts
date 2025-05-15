@@ -27,6 +27,7 @@ export class Trie {
       curr.isEnd = true;
       this.#length++;
     }
+    return this.#length;
   }
 
   delete(...words: string[]): number {

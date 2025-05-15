@@ -27,7 +27,11 @@ export class LinkedList<T> implements Iterable<T> {
     if (mapFn) {
       iterable = mapIterable(iterable, mapFn);
     }
-    return new LinkedList(...iterable);
+    const list = new LinkedList();
+    for (const value of iterable) {
+      list.push(value);
+    }
+    return list;
   }
 
   static async fromAsync<T>(iterableOrArrayLike: AsyncIterable<T> | Iterable<T | PromiseLike<T>> | ArrayLike<T | PromiseLike<T>>) {
@@ -302,12 +306,10 @@ export class LinkedList<T> implements Iterable<T> {
 
   filter(callback: IterCallback<T, boolean>) {
     const list = new LinkedList<T>();
-    let index = 0;
-    for (const item of this) {
-      if (callback(item, index, this)) {
-        list.push(item);
+    for (const [index, value] of this.entries()) {
+      if (callback(value, index, this)) {
+        list.push(value);
       }
-      index++;
     }
     return list;
   }
@@ -343,6 +345,9 @@ export class LinkedList<T> implements Iterable<T> {
   *entries(): Generator<[index: number, value: T]> {
     let index = 0;
     for (const node of this.nodes()) {
+      if (index === this.#length) {
+        throw new RangeError("Circular list detected", { cause: "Circular List" });
+      }
       yield [index, node.value];
       index++;
     }
@@ -371,10 +376,8 @@ export class LinkedList<T> implements Iterable<T> {
 
   reduce<U>(callback: (acc: U, val: T, i: number, list: LinkedList<T>) => U, initial: U): U {
     let acc = initial;
-    let i = 0;
-    for (const val of this) {
-      acc = callback(acc, val, i, this);
-      i++;
+    for (const [index, value] of this.entries()) {
+      acc = callback(acc, value, index, this);
     }
     return acc;
   }
@@ -382,15 +385,12 @@ export class LinkedList<T> implements Iterable<T> {
   sort(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)): this {
     function mergeSort(head: Node<T> | undefined): Node<T> | undefined {
       if (!head || !head.right) return head;
-
       const mid = getMiddle(head);
       const rightHead = mid.right;
       mid.right = undefined;
       if (rightHead) rightHead.left = undefined;
-
       const leftSorted = mergeSort(head);
       const rightSorted = mergeSort(rightHead);
-
       return merge(leftSorted, rightSorted);
     }
 
