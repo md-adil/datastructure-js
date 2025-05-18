@@ -5,7 +5,7 @@ function toValue<T>(value: T | (() => T)) {
   return value;
 }
 
-class DefaultMap<K, V> {
+class DefaultMap<K, V> implements Iterable<[K, V]> {
   public readonly map = new Map<K, V>();
   constructor(private def: V | (() => V)) {}
   get(key: K) {
@@ -16,6 +16,10 @@ class DefaultMap<K, V> {
   }
   set(key: K, value: V) {
     return this.map.set(key, value);
+  }
+
+  *[Symbol.iterator]() {
+    yield* this.map;
   }
 }
 

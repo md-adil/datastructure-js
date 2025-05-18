@@ -28,29 +28,21 @@ export class LinkedList<T> implements Iterable<T> {
       iterable = mapIterable(iterable, mapFn);
     }
     const list = new LinkedList();
-    for (const value of iterable) {
-      list.push(value);
-    }
+    for (const value of iterable) list.push(value);
     return list;
   }
 
   static async fromAsync<T>(iterableOrArrayLike: AsyncIterable<T> | Iterable<T | PromiseLike<T>> | ArrayLike<T | PromiseLike<T>>) {
-    const list = new LinkedList<T>();
     if (!isAsyncIterable(iterableOrArrayLike)) {
       iterableOrArrayLike = toAsyncIterable(iterableOrArrayLike);
     }
-    for await (const value of iterableOrArrayLike) {
-      list.push(value);
-    }
+    const list = new LinkedList<T>();
+    for await (const value of iterableOrArrayLike) list.push(value);
     return list;
   }
 
   isLinkedList<T>(data: unknown): data is LinkedList<T> {
     return data instanceof LinkedList;
-  }
-
-  of<T>(...items: T[]): LinkedList<T> {
-    return new LinkedList(...items);
   }
 
   #head?: Node<T>;
@@ -231,10 +223,8 @@ export class LinkedList<T> implements Iterable<T> {
   }
 
   concat(...lists: LinkedList<T>[]) {
-    const final = new LinkedList(...this);
-    for (const list of lists) {
-      list.forEach((x) => final.push(x));
-    }
+    const final = LinkedList.from(this);
+    for (const list of lists) list.forEach((x) => final.push(x));
     return final;
   }
 
@@ -405,6 +395,7 @@ export class LinkedList<T> implements Iterable<T> {
     }
 
     const merge = (l1: Node<T> | undefined, l2: Node<T> | undefined): Node<T> | undefined => {
+      // deno-lint-ignore no-explicit-any
       const dummy = new Node<T>(null as any);
       let current = dummy;
 
@@ -485,15 +476,15 @@ export class LinkedList<T> implements Iterable<T> {
   }
 
   toSorted(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)) {
-    return new LinkedList(...this).sort(compareFn);
+    return LinkedList.from(this).sort(compareFn);
   }
 
   toSpliced(start: number, end?: number) {
-    return new LinkedList(...this).splice(start, end);
+    return LinkedList.from(this).splice(start, end);
   }
 
   toReversed() {
-    return new LinkedList(...this).reverse();
+    return LinkedList.from(this).reverse();
   }
 
   *nodes(head = this.#head): Generator<Node<T>> {
