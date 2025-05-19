@@ -1,7 +1,11 @@
 type Callback<T, U> = (value: T, index: number, instance: Range) => U;
-class Range {
+class Range implements Iterable<number> {
   public readonly end: number;
-  constructor(public readonly start: number, end?: number, public readonly steps = 1) {
+  constructor(
+    public readonly start: number,
+    end?: number,
+    public readonly steps = 1
+  ) {
     if (end === undefined) {
       this.end = start;
       this.start = 0;
@@ -11,13 +15,19 @@ class Range {
     if (steps === 0) {
       throw new Error("Step cannot be zero");
     }
-    if ((this.start < this.end && steps < 0) || (this.start > this.end && steps > 0)) {
+    if (
+      (this.start < this.end && steps < 0) ||
+      (this.start > this.end && steps > 0)
+    ) {
       throw new Error("Step direction incompatible with range direction");
     }
   }
 
   get length(): number {
-    return Math.max(0, Math.ceil(Math.abs(this.end - this.start) / Math.abs(this.steps)));
+    return Math.max(
+      0,
+      Math.ceil(Math.abs(this.end - this.start) / Math.abs(this.steps))
+    );
   }
 
   at(index: number): number | undefined {
@@ -49,7 +59,11 @@ class Range {
   }
 
   reverse() {
-    return new Range(this.end - this.steps, this.start - Math.sign(this.steps), -this.steps);
+    return new Range(
+      this.end - this.steps,
+      this.start - Math.sign(this.steps),
+      -this.steps
+    );
   }
 
   *[Symbol.iterator]() {
