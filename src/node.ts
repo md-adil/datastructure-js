@@ -5,6 +5,10 @@ export class Node<T> implements Iterable<T> {
 
   constructor(public value: T, public left?: Node<T>, public right?: Node<T>) {}
 
+  toJSON() {
+    return this.value;
+  }
+
   valueOf() {
     return this.value;
   }

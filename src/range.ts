@@ -1,3 +1,5 @@
+import { DynamicBitSet } from "./dynamic-bitset.ts";
+
 type Callback<T, U> = (value: T, index: number, instance: Range) => U;
 class Range implements Iterable<number> {
   public readonly end: number;
@@ -74,6 +76,20 @@ class Range implements Iterable<number> {
     while (steps > 0 ? start < end : start > end) {
       yield start;
       start += this.steps;
+    }
+  }
+
+  *shuffle() {
+    const length = this.length;
+    const sets = new DynamicBitSet();
+    let i = 0;
+    while (i < length) {
+      if (sets.has(i)) {
+        continue;
+      }
+      sets.add(i);
+      yield this.at(Math.floor(Math.random() * this.length));
+      i++;
     }
   }
 }

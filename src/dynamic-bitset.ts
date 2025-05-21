@@ -1,20 +1,32 @@
-export class BitSet implements Iterable<number> {
+export class DynamicBitSet implements Iterable<number> {
   bits: Uint8Array;
-  constructor(size = 64) {
-    this.bits = new Uint8Array(Math.ceil(size / 8));
+
+  constructor() {
+    this.bits = new Uint8Array(1);
   }
 
   #position(pos: number): [index: number, bit: number] {
     return [pos >> 3, pos % 8];
   }
 
+  #ensureSize(pos: number) {
+    const [index] = this.#position(pos);
+    if (index >= this.bits.length) {
+      const newBits = new Uint8Array(index + 1);
+      newBits.set(this.bits);
+      this.bits = newBits;
+    }
+  }
+
   delete(pos: number) {
+    this.#ensureSize(pos);
     const [index, bit] = this.#position(pos);
     this.bits[index] &= ~(1 << bit);
     return this;
   }
 
   toggle(pos: number) {
+    this.#ensureSize(pos);
     const [index, bit] = this.#position(pos);
     this.bits[index] ^= 1 << bit;
     return this;
@@ -22,15 +34,16 @@ export class BitSet implements Iterable<number> {
 
   add(...numbers: number[]) {
     for (const pos of numbers) {
+      this.#ensureSize(pos);
       const [index, bit] = this.#position(pos);
       this.bits[index] |= 1 << bit;
     }
     return this;
   }
 
-  has(pos: number) {
+  has(pos: number): boolean {
     const [index, bit] = this.#position(pos);
-    return (this.bits[index] >> bit) & 1;
+    return index < this.bits.length && ((this.bits[index] >> bit) & 1) === 1;
   }
 
   *[Symbol.iterator]() {
@@ -45,10 +58,4 @@ export class BitSet implements Iterable<number> {
       }
     }
   }
-}
-
-export function bitset(...values: number[]) {
-  const bs = new BitSet();
-  bs.add(...values);
-  return bs;
 }

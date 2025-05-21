@@ -3,7 +3,10 @@ import { isIterable, toIterable, mapIterable, MapFn } from "./iterable.ts";
 export class CharSet {
   private bits: Uint32Array;
 
-  static from(iterable: ArrayLike<string> | Iterable<string>, mapFn?: MapFn<string, string>) {
+  static from(
+    iterable: ArrayLike<string> | Iterable<string>,
+    mapFn?: MapFn<string, string>
+  ) {
     if (!isIterable(iterable)) {
       iterable = toIterable(iterable);
     }
@@ -47,6 +50,21 @@ export class CharSet {
     this.bits.fill(0);
   }
 
+  union(...sets: CharSet[]) {
+    const newSet = CharSet.from(this);
+    for (const set of sets) {
+      for (const value of set) {
+        newSet.add(value);
+      }
+    }
+    return newSet;
+  }
+  *entries() {
+    for (const value of this) {
+      yield [value, value];
+    }
+  }
+
   *[Symbol.iterator](): IterableIterator<string> {
     for (let i = 0; i < this.bits.length; i++) {
       const block = this.bits[i];
@@ -62,10 +80,5 @@ export class CharSet {
 
 export function charset(...chars: string[]) {
   const set = new CharSet();
-  for (const str of chars) {
-    for (const c of str) {
-      set.add(c);
-    }
-  }
-  return set;
+  return set.union(...chars.map((x) => CharSet.from(x)));
 }
