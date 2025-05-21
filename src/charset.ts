@@ -3,10 +3,7 @@ import { isIterable, toIterable, mapIterable, MapFn } from "./iterable.ts";
 export class CharSet {
   private bits: Uint32Array;
 
-  static from(
-    iterable: ArrayLike<string> | Iterable<string>,
-    mapFn?: MapFn<string, string>
-  ) {
+  static from(iterable: ArrayLike<string> | Iterable<string>, mapFn?: MapFn<string, string>) {
     if (!isIterable(iterable)) {
       iterable = toIterable(iterable);
     }
