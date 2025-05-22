@@ -109,11 +109,12 @@ class Range implements Iterable<number> {
     const sets = new BitSet(length);
     let i = 0;
     while (i < length) {
-      if (sets.has(i)) {
+      const index = Math.floor(Math.random() * length);
+      if (sets.has(index)) {
         continue;
       }
-      sets.add(i);
-      yield this.at(Math.floor(Math.random() * this.length))!;
+      sets.add(index);
+      yield this.at(index)!;
       i++;
     }
   }
