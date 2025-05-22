@@ -1,6 +1,8 @@
-import { DynamicBitSet } from "./dynamic-bitset.ts";
+import { BitSet } from "./bitset.ts";
+import { IterCallback } from "./types.ts";
 
-type Callback<T, U> = (value: T, index: number, instance: Range) => U;
+type Callback<R> = IterCallback<number, R, Range>;
+
 class Range implements Iterable<number> {
   public readonly end: number;
   constructor(
@@ -25,6 +27,10 @@ class Range implements Iterable<number> {
     }
   }
 
+  valueOf() {
+    return this.length;
+  }
+
   get length(): number {
     return Math.max(
       0,
@@ -38,7 +44,7 @@ class Range implements Iterable<number> {
     return this.start + index * this.steps;
   }
 
-  map<U>(callback: Callback<number, U>) {
+  map<U>(callback: Callback<U>) {
     const returned: U[] = [];
     for (const [index, value] of this.entries()) {
       returned.push(callback(value, index, this));
@@ -46,7 +52,26 @@ class Range implements Iterable<number> {
     return returned;
   }
 
-  forEach(callback: Callback<number, void>) {
+  *filter(callback: Callback<boolean>) {
+    for (const [index, value] of this.entries()) {
+      if (callback(value, index, this)) {
+        yield value;
+      }
+    }
+  }
+
+  reduce<U>(
+    callback: (acc: U, value: number, index: number, range: Range) => U,
+    initial: U
+  ): U {
+    let acc = initial;
+    for (const [index, value] of this.entries()) {
+      acc = callback(acc, value, index, this);
+    }
+    return acc;
+  }
+
+  forEach(callback: Callback<void>) {
     for (const [index, value] of this.entries()) {
       callback(value, index, this);
     }
@@ -81,14 +106,14 @@ class Range implements Iterable<number> {
 
   *shuffle() {
     const length = this.length;
-    const sets = new DynamicBitSet();
+    const sets = new BitSet(length);
     let i = 0;
     while (i < length) {
       if (sets.has(i)) {
         continue;
       }
       sets.add(i);
-      yield this.at(Math.floor(Math.random() * this.length));
+      yield this.at(Math.floor(Math.random() * this.length))!;
       i++;
     }
   }

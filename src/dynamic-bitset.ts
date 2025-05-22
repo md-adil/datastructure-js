@@ -6,10 +6,10 @@ export class DynamicBitSet extends BitSet {
   }
 
   protected override position(pos: number): [index: number, bit: number] {
-    const index = pos >> 3;
+    const [index, bit] = super.position(pos);
     if (index >= this.bits.length) {
       this.resize(index + 1);
     }
-    return [pos >> 3, pos % 8];
+    return [index, bit];
   }
 }
