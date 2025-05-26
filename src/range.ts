@@ -86,6 +86,9 @@ class Range implements Iterable<number> {
   }
 
   reverse() {
+    if (this.end === Infinity) {
+      throw new RangeError("Can't start with Infinity");
+    }
     return new Range(
       this.end - this.steps,
       this.start - Math.sign(this.steps),
@@ -106,6 +109,8 @@ class Range implements Iterable<number> {
 
   *shuffle() {
     const length = this.length;
+    if (length === Infinity)
+      throw new Error("Can not shuffle infinity numbers");
     const sets = new BitSet(length);
     let i = 0;
     while (i < length) {

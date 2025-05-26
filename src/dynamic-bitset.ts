@@ -8,7 +8,8 @@ export class DynamicBitSet extends BitSet {
   protected override position(pos: number): [index: number, bit: number] {
     const [index, bit] = super.position(pos);
     if (index >= this.bits.length) {
-      this.resize(index + 1);
+      this.capacity =
+        (index + 1) * this.bits.BYTES_PER_ELEMENT * this.bits.byteLength;
     }
     return [index, bit];
   }

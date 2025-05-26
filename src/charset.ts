@@ -1,9 +1,14 @@
+import { BitSet } from "./bitset.ts";
 import { isIterable, toIterable, mapIterable, MapFn } from "./iterable.ts";
 
 export class CharSet {
-  private bits: Uint32Array;
-
-  static from(iterable: ArrayLike<string> | Iterable<string>, mapFn?: MapFn<string, string>) {
+  static from(
+    iterable: ArrayLike<string> | Iterable<string> | CharSet,
+    mapFn?: MapFn<string, string>
+  ) {
+    if (iterable instanceof CharSet && !mapFn) {
+      return new CharSet(BitSet.from(iterable.bitSet));
+    }
     if (!isIterable(iterable)) {
       iterable = toIterable(iterable);
     }
@@ -17,61 +22,64 @@ export class CharSet {
     return set;
   }
 
-  constructor(size = 128) {
-    if (size % 32 !== 0) throw new Error("Size must be multiple of 32");
-    this.bits = new Uint32Array(size / 32);
+  private readonly bitSet: BitSet;
+
+  constructor(size: number | BitSet = 128) {
+    if (size instanceof BitSet) {
+      this.bitSet = size;
+    } else {
+      if (size % 32 !== 0) throw new Error("Size must be multiple of 32");
+      this.bitSet = new BitSet(size);
+    }
   }
 
   private index(char: string) {
-    const code = char.charCodeAt(0);
-    if (code >= this.bits.length * 32) throw new Error("Char out of bounds");
-    return [code >>> 5, code & 31]; // [index, bit]
+    return char.charCodeAt(0);
   }
 
   add(char: string) {
-    const [i, bit] = this.index(char);
-    this.bits[i] |= 1 << bit;
+    this.bitSet.add(this.index(char));
   }
 
   has(char: string) {
-    const [i, bit] = this.index(char);
-    return (this.bits[i] & (1 << bit)) !== 0;
+    return this.bitSet.has(this.index(char));
   }
 
   delete(char: string) {
-    const [i, bit] = this.index(char);
-    this.bits[i] &= ~(1 << bit);
+    this.bitSet.delete(this.index(char));
+    return this;
   }
 
   clear() {
-    this.bits.fill(0);
+    this.bitSet.clear();
   }
 
   union(...sets: CharSet[]) {
-    const newSet = CharSet.from(this);
-    for (const set of sets) {
-      for (const value of set) {
-        newSet.add(value);
-      }
-    }
-    return newSet;
+    return new CharSet(this.bitSet.union(...sets.map((x) => x.bitSet)));
   }
+
+  difference(other: CharSet) {
+    return new CharSet(this.bitSet.difference(other.bitSet));
+  }
+
+  intersection(charSet: CharSet) {
+    return new CharSet(this.bitSet.intersection(charSet.bitSet));
+  }
+
   *entries() {
-    for (const value of this) {
+    for (const value of this.values()) {
       yield [value, value];
     }
   }
 
-  *[Symbol.iterator](): IterableIterator<string> {
-    for (let i = 0; i < this.bits.length; i++) {
-      const block = this.bits[i];
-      if (block === 0) continue;
-      for (let j = 0; j < 32; j++) {
-        if ((block & (1 << j)) !== 0) {
-          yield String.fromCharCode(i * 32 + j);
-        }
-      }
+  *values() {
+    for (const index of this.bitSet) {
+      yield String.fromCharCode(index);
     }
+  }
+
+  *[Symbol.iterator](): IterableIterator<string> {
+    yield* this.values();
   }
 }
 

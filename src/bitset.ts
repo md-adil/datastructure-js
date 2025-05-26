@@ -2,43 +2,76 @@ import { isIterable, MapFn, mapIterable, toIterable } from "./iterable.ts";
 import { IterCallback } from "./types.ts";
 
 export class BitSet implements Iterable<number> {
-  static from(iterable: ArrayLike<number> | Iterable<number>, mapFn?: MapFn<number, number>) {
+  static from(
+    iterable: ArrayLike<number> | Iterable<number> | BitSet,
+    mapFn?: MapFn<number, number>
+  ) {
+    if (iterable instanceof BitSet && !mapFn) {
+      const newSet = new BitSet(iterable.capacity);
+      newSet.bits.set(iterable.bits);
+      return newSet;
+    }
     if (!isIterable(iterable)) {
       iterable = toIterable(iterable);
     }
     if (mapFn) {
       iterable = mapIterable(iterable, mapFn);
     }
-    const set = new BitSet();
+    const newSet = new BitSet();
     for (const char of iterable) {
-      set.add(char);
+      newSet.add(char);
     }
-    return set;
+    return newSet;
   }
 
-  bits: Uint8Array;
+  bits: Uint32Array;
 
-  constructor(size = 64) {
-    this.bits = new Uint8Array(Math.ceil(size / 8));
+  #capacity: number;
+
+  constructor(capacity = 64) {
+    this.#capacity = capacity;
+    this.bits = new Uint32Array(Math.ceil(capacity / 32));
   }
 
-  protected position(pos: number): [index: number, bit: number] {
-    return [pos >> 3, pos % 8];
+  get capacity() {
+    return this.#capacity;
   }
 
-  resize(size: number) {
-    const bits = new Uint8Array(size);
+  set capacity(size: number) {
+    const bits = new Uint32Array(Math.ceil(size / 32));
     bits.set(this.bits);
+    this.#capacity = size;
     this.bits = bits;
   }
 
-  difference() {}
+  protected position(pos: number): [index: number, bit: number] {
+    if (pos >= this.#capacity) {
+      throw new RangeError("Index exceeds BitSet capacity");
+    }
+    return [pos >> 5, pos % 32];
+  }
 
-  intersection() {}
+  clear() {
+    this.bits.fill(0);
+    return this;
+  }
 
-  keys() {}
+  *keys() {
+    yield* this.values();
+  }
 
-  values() {}
+  *values(): Generator<number> {
+    const size = 32;
+    for (let i = 0; i < this.bits.length; i++) {
+      const block = this.bits[i];
+      if (block === 0) continue;
+      for (let j = 0; j < size; j++) {
+        if ((block & (1 << j)) !== 0) {
+          yield i * size + j;
+        }
+      }
+    }
+  }
 
   forEach(iterator: IterCallback<number, void, BitSet>) {
     for (const value of this) {
@@ -68,13 +101,33 @@ export class BitSet implements Iterable<number> {
 
   has(pos: number) {
     const [index, bit] = this.position(pos);
-    return (this.bits[index] >> bit) & 1;
+    return Boolean((this.bits[index] >> bit) & 1);
   }
 
   *entries() {
-    for (const value of this) {
+    for (const value of this.values()) {
       yield [value, value];
     }
+  }
+
+  difference(other: BitSet) {
+    const newSet = BitSet.from(this);
+    for (const value of this) {
+      if (other.has(value)) {
+        newSet.delete(value);
+      }
+    }
+    return newSet;
+  }
+
+  intersection(other: BitSet) {
+    const newSet = new BitSet(Math.min(this.capacity, other.capacity));
+    for (const value of this) {
+      if (other.has(value)) {
+        newSet.add(value);
+      }
+    }
+    return newSet;
   }
 
   union(...sets: BitSet[]) {
@@ -88,16 +141,7 @@ export class BitSet implements Iterable<number> {
   }
 
   *[Symbol.iterator]() {
-    const size = 8;
-    for (let i = 0; i < this.bits.length; i++) {
-      const block = this.bits[i];
-      if (block === 0) continue;
-      for (let j = 0; j < size; j++) {
-        if ((block & (1 << j)) !== 0) {
-          yield i * size + j;
-        }
-      }
-    }
+    yield* this.values();
   }
 }
 

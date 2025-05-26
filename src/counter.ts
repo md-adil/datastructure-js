@@ -19,8 +19,12 @@ class Counter<T> implements Iterable<[T, number]> {
     return this.#sets.get(c) ?? def;
   }
 
-  add(i: T) {
-    this.#sets.set(i, this.get(i, 0) + 1);
+  add(item: T) {
+    this.#sets.set(item, this.get(item, 0) + 1);
+  }
+
+  delete(item: T) {
+    return this.#sets.delete(item);
   }
 
   entries() {
