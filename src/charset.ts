@@ -1,11 +1,9 @@
 import { BitSet } from "./bitset.ts";
 import { isIterable, toIterable, mapIterable, MapFn } from "./iterable.ts";
+import { IterCallback } from "./types.ts";
 
 export class CharSet {
-  static from(
-    iterable: ArrayLike<string> | Iterable<string> | CharSet,
-    mapFn?: MapFn<string, string>
-  ) {
+  static from(iterable: ArrayLike<string> | Iterable<string> | CharSet, mapFn?: MapFn<string, string>) {
     if (iterable instanceof CharSet && !mapFn) {
       return new CharSet(BitSet.from(iterable.bitSet));
     }
@@ -64,6 +62,19 @@ export class CharSet {
 
   intersection(charSet: CharSet) {
     return new CharSet(this.bitSet.intersection(charSet.bitSet));
+  }
+
+  *filter(callback: IterCallback<string, unknown, CharSet>) {
+    let index = 0;
+    for (const value of this) {
+      if (!callback(value, index, this)) continue;
+      yield value;
+      index++;
+    }
+  }
+
+  toString() {
+    return [...this].join("");
   }
 
   *entries() {

@@ -2,10 +2,7 @@ import { isIterable, MapFn, mapIterable, toIterable } from "./iterable.ts";
 import { IterCallback } from "./types.ts";
 
 export class BitSet implements Iterable<number> {
-  static from(
-    iterable: ArrayLike<number> | Iterable<number> | BitSet,
-    mapFn?: MapFn<number, number>
-  ) {
+  static from(iterable: ArrayLike<number> | Iterable<number> | BitSet, mapFn?: MapFn<number, number>) {
     if (iterable instanceof BitSet && !mapFn) {
       const newSet = new BitSet(iterable.capacity);
       newSet.bits.set(iterable.bits);
@@ -54,6 +51,15 @@ export class BitSet implements Iterable<number> {
   clear() {
     this.bits.fill(0);
     return this;
+  }
+
+  *filter(callback: IterCallback<number, unknown, BitSet>) {
+    let index = 0;
+    for (const value of this) {
+      if (!callback(value, index, this)) continue;
+      yield value;
+      index++;
+    }
   }
 
   *keys() {

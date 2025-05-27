@@ -294,7 +294,7 @@ export class LinkedList<T> implements Iterable<T> {
     return current;
   }
 
-  filter(callback: IterCallback<T, boolean>) {
+  filter(callback: IterCallback<T, unknown>) {
     const list = new LinkedList<T>();
     for (const [index, value] of this.entries()) {
       if (callback(value, index, this)) {
