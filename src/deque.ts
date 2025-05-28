@@ -2,6 +2,7 @@ export class Deque<T> {
   #bucket;
   #front = 0;
   #back = 0;
+
   constructor(...data: T[]) {
     this.#bucket = data;
   }
@@ -42,10 +43,7 @@ export class Deque<T> {
   }
 
   #resize() {
-    this.#bucket = this.#bucket.slice(
-      this.#front,
-      this.#bucket.length - this.#back
-    );
+    this.#bucket = this.#bucket.slice(this.#front, this.#bucket.length - this.#back);
     this.#front = this.#back = 0;
   }
 
