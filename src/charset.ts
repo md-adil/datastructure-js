@@ -21,7 +21,9 @@ export class CharSet {
   }
 
   private readonly bitSet: BitSet;
-
+  constructor();
+  constructor(size: number);
+  constructor(bitset: BitSet);
   constructor(size: number | BitSet = 128) {
     if (size instanceof BitSet) {
       this.bitSet = size;

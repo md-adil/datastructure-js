@@ -1,5 +1,5 @@
 export function isPrime(n: number): [prime: boolean, cost: number] {
-  let x = 1;
+  let x = 0;
   if (n <= 1) return [false, x];
   if (n <= 3) return [true, x];
   if (n % 2 === 0 || n % 3 === 0) return [false, x];

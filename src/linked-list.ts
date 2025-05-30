@@ -32,7 +32,9 @@ export class LinkedList<T> implements Iterable<T> {
     return list;
   }
 
-  static async fromAsync<T>(iterableOrArrayLike: AsyncIterable<T> | Iterable<T | PromiseLike<T>> | ArrayLike<T | PromiseLike<T>>) {
+  static async fromAsync<T>(
+    iterableOrArrayLike: AsyncIterable<T> | Iterable<T | PromiseLike<T>> | ArrayLike<T | PromiseLike<T>>
+  ) {
     if (!isAsyncIterable(iterableOrArrayLike)) {
       iterableOrArrayLike = toAsyncIterable(iterableOrArrayLike);
     }
@@ -55,30 +57,6 @@ export class LinkedList<T> implements Iterable<T> {
 
   valueOf() {
     return this.#length;
-  }
-
-  get length() {
-    return this.#length;
-  }
-
-  set length(length: number) {
-    if (length > this.#length) {
-      throw new Error("Can't set exceeding length");
-    }
-
-    if (length === this.#length) return;
-
-    if (length === 0) {
-      this.#head = this.#tail = undefined;
-      this.#length = length;
-      return;
-    }
-
-    const node = this.nodeAt(length)!;
-    node.right = undefined;
-    if (node.left) node.left.right = undefined;
-    this.#tail = node;
-    this.#length = length;
   }
 
   replace(index: number, value: T) {
@@ -112,22 +90,6 @@ export class LinkedList<T> implements Iterable<T> {
     }
     this.#length--;
     return tail.value;
-  }
-
-  get head() {
-    return this.#head;
-  }
-
-  get tail() {
-    return this.#tail;
-  }
-
-  get first() {
-    return this.head?.value;
-  }
-
-  get last() {
-    return this.tail?.value;
   }
 
   shift() {
@@ -497,6 +459,50 @@ export class LinkedList<T> implements Iterable<T> {
 
   toJSON() {
     return "[" + this.map((x) => JSON.stringify(x)).join(",") + "]";
+  }
+
+  get head() {
+    return this.#head;
+  }
+
+  get tail() {
+    return this.#tail;
+  }
+
+  get first() {
+    return this.head?.value;
+  }
+
+  get last() {
+    return this.tail?.value;
+  }
+
+  get length() {
+    return this.#length;
+  }
+
+  set length(length: number) {
+    if (length > this.#length) {
+      throw new Error("Can't set exceeding length");
+    }
+
+    if (length === this.#length) return;
+
+    if (length === 0) {
+      this.#head = this.#tail = undefined;
+      this.#length = length;
+      return;
+    }
+
+    const node = this.nodeAt(length)!;
+    node.right = undefined;
+    if (node.left) node.left.right = undefined;
+    this.#tail = node;
+    this.#length = length;
+  }
+
+  get array() {
+    return Array.from(this);
   }
 
   *[Symbol.iterator]() {

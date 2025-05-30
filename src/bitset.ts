@@ -8,15 +8,23 @@ export class BitSet implements Iterable<number> {
       newSet.bucket.set(iterable.bucket);
       return newSet;
     }
+
     if (!isIterable(iterable)) {
       iterable = toIterable(iterable);
     }
+
     if (mapFn) {
       iterable = mapIterable(iterable, mapFn);
     }
-    const newSet = new BitSet();
-    for (const char of iterable) {
-      newSet.add(char);
+
+    let length = 32;
+    const newSet = new BitSet(length);
+    for (const value of iterable) {
+      if (value >= length) {
+        length = value + (newSet.bitLength - (value % newSet.bitLength));
+        newSet.capacity = length;
+      }
+      newSet.add(value);
     }
     return newSet;
   }
@@ -24,12 +32,20 @@ export class BitSet implements Iterable<number> {
   bucket: UintArray;
   #bitLength;
   #capacity: number;
-
-  constructor(capacity: number | UintArray = 64) {
+  constructor(bucket: UintArray);
+  constructor(capacity: number);
+  constructor(capacity: number | UintArray) {
     const [bits, size, cap] = this.#createBucket(capacity);
     this.bucket = bits;
     this.#bitLength = size;
     this.#capacity = cap;
+  }
+
+  #createBucket(capacity: number | UintArray): [bucket: UintArray, size: number, capacity: number] {
+    if (typeof capacity === "number") {
+      return [new Uint32Array(Math.ceil(capacity / 32)), 32, capacity];
+    }
+    return [capacity, capacity.BYTES_PER_ELEMENT * 8, capacity.byteLength * 8];
   }
 
   get capacity(): number {
@@ -46,13 +62,6 @@ export class BitSet implements Iterable<number> {
 
   get bitLength() {
     return this.#bitLength;
-  }
-
-  #createBucket(capacity: number | UintArray): [bucket: UintArray, size: number, capacity: number] {
-    if (typeof capacity === "number") {
-      return [new Uint32Array(Math.ceil(capacity / 32)), 32, capacity];
-    }
-    return [capacity, capacity.BYTES_PER_ELEMENT * 8, capacity.byteLength * 8];
   }
 
   protected position(pos: number): [index: number, bit: number] {
@@ -165,8 +174,23 @@ export class BitSet implements Iterable<number> {
   }
 }
 
+export class DynamicBitSet extends BitSet {
+  constructor() {
+    super(32);
+  }
+
+  protected override position(pos: number): [index: number, bit: number] {
+    const bitLength = this.bitLength;
+    const [index, bit] = [Math.floor(pos / bitLength), pos % bitLength];
+    if (index >= this.bucket.length) {
+      this.capacity = (index + 1) * bitLength;
+    }
+    return [index, bit];
+  }
+}
+
 export function bitset(...values: number[]) {
-  const bs = new BitSet();
+  const bs = new BitSet(64);
   bs.add(...values);
   return bs;
 }

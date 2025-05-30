@@ -15,10 +15,7 @@ class Range implements Iterable<number> {
     if (steps === 0) {
       throw new Error("Step cannot be zero");
     }
-    if (
-      (this.start < this.end && steps < 0) ||
-      (this.start > this.end && steps > 0)
-    ) {
+    if ((this.start < this.end && steps < 0) || (this.start > this.end && steps > 0)) {
       throw new Error("Step direction incompatible with range direction");
     }
   }
@@ -28,10 +25,7 @@ class Range implements Iterable<number> {
   }
 
   get length(): number {
-    return Math.max(
-      0,
-      Math.ceil(Math.abs(this.end - this.start) / Math.abs(this.steps))
-    );
+    return Math.max(0, Math.ceil(Math.abs(this.end - this.start) / Math.abs(this.steps)));
   }
 
   at(index: number): number | undefined {
@@ -56,10 +50,7 @@ class Range implements Iterable<number> {
     }
   }
 
-  reduce<U>(
-    callback: (acc: U, value: number, index: number, range: Range) => U,
-    initial: U
-  ): U {
+  reduce<U>(callback: (acc: U, value: number, index: number, range: Range) => U, initial: U): U {
     let acc = initial;
     for (const [index, value] of this.entries()) {
       acc = callback(acc, value, index, this);
@@ -97,6 +88,18 @@ class Range implements Iterable<number> {
     return new Range(this.start, this.end, this.steps).reverse();
   }
 
+  get first() {
+    return this.at(0);
+  }
+
+  get last() {
+    return this.at(this.length - 1);
+  }
+
+  get array() {
+    return Array.from(this);
+  }
+
   *[Symbol.iterator]() {
     let start = this.start;
     const steps = this.steps;
@@ -110,8 +113,7 @@ class Range implements Iterable<number> {
 
   *shuffle() {
     const length = this.length;
-    if (length === Infinity)
-      throw new Error("Can not shuffle infinity numbers");
+    if (length === Infinity) throw new Error("Can not shuffle infinity numbers");
     const sets = new BitSet(length);
     let i = 0;
     while (i < length) {

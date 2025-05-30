@@ -12,10 +12,6 @@ export class Deque<T> {
     return this.#bucket[this.#front + index];
   }
 
-  get length() {
-    return this.#bucket.length - this.#front - this.#back;
-  }
-
   push(val: T) {
     if (this.#back === 0) {
       this.#bucket.push(val);
@@ -63,11 +59,6 @@ export class Deque<T> {
     return val;
   }
 
-  first() {
-    if (!this.length) return;
-    return this.#bucket[this.#front];
-  }
-
   *entries() {
     let index = 0,
       current = this.#front;
@@ -76,13 +67,26 @@ export class Deque<T> {
     }
   }
 
-  last() {
-    if (!this.length) return;
+  get first() {
+    if (!this.length) return undefined;
+    return this.#bucket[this.#front];
+  }
+
+  get last() {
+    if (!this.length) return undefined;
     return this.#bucket[this.#bucket.length - 1 - this.#back];
+  }
+
+  get length() {
+    return this.#bucket.length - this.#front - this.#back;
   }
 
   get bucket() {
     return this.#bucket;
+  }
+
+  get array() {
+    return Array.from(this);
   }
 
   *[Symbol.iterator]() {
